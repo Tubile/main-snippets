@@ -1,1 +1,54 @@
+<!-- MODAL: PREVIEW (voice-verify) -->
+<style>
+/* שכבת מודאל כללית */
+#modal-voice-verify-preview{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:saturate(120%) blur(6px);opacity:0;pointer-events:none;transition:.2s;z-index:9999;
+/* מרכזים ובעיקר – מוסיפים padding מסביב כדי שה-X לא יידבק לשוליים */
+display:flex; align-items:center; justify-content:center;
+padding:24px; /* מרווח נשימה */
+box-sizing:border-box; /* חשוב עם padding */}
+#modal-voice-verify-preview:target{opacity:1;pointer-events:auto}
+#modal-voice-verify-preview .box{ position:relative;
+background:transparent; border:0; box-shadow:none; padding:0;
 
+/* כדי שלא יגלוש מעבר למסך הקטן ביותר */
+max-width:100%;
+max-height:100%;
+overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+#modal-voice-verify-preview .close{position:absolute; right:8px; top:8px;
+color:#9aa3b2; text-decoration:none; font-weight:700;
+background:rgba(15,19,36,.8); padding:6px 10px; border-radius:10px;}
+
+/* טלפון 9:16 (תוכל לשנות למידות אחרות) */
+#phone-vv{width:375px;height:812px;border-radius:28px;overflow:hidden;border:1px solid rgba(255,255,255,.12);box-shadow:0 20px 60px rgba(0,0,0,.35);background:#0b1020}
+#phone-vv iframe{width:100%;height:100%;border:0}
+@media (max-width:420px){#phone-vv{width:340px;height:736px}}
+</style>
+
+<div id="modal-voice-verify-preview">
+<div class="box">
+<a class="close" href="#">✕</a>
+<div id="phone-vv">
+<iframe id="prevFrame-vv" allow="microphone;camera" src="about:blank"></iframe>
+</div>
+</div>
+</div>
+
+<script>
+// פונקציה גלובלית שה-Customize יקרא אליה כדי לעדכן את הפריביו של voice-verify
+window.setPreview_voiceVerify = function(url){
+var f = document.getElementById('prevFrame-vv');
+if (f && url) f.src = url;
+try{ localStorage.setItem('share_url', url); }catch(e){}
+};
+
+// דיפולט כשפותחים את המודאל (טוען את ה-Runtime עם preview=1)
+(function(){
+if(!window.APP) return;
+var u = new URL(window.APP.RUNTIME_BASE);
+u.searchParams.set('f','voice-verify'); // ← החלף לפי המתיחה של המודאל הזה כשהעתקת לתבניות אחרות
+u.searchParams.set('name','Friend');
+u.searchParams.set('giftUrl','https://example.com');
+u.searchParams.set('preview','1'); // עטיפת פריביו תוצג רק בפריביו
+window.setPreview_voiceVerify(u.toString());
+})();
+</script>
