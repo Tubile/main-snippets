@@ -1,1 +1,124 @@
+<!-- MODAL: CUSTOMIZE (captcha) -->
+<style>
+#modal-customize-captcha{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:saturate(120%) blur(6px);opacity:0;pointer-events:none;transition:.2s;z-index:9999}
+#modal-customize-captcha:target{opacity:1;pointer-events:auto}
+#modal-customize-captcha .box{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#0f1324;border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:16px 14px;box-shadow:0 30px 80px rgba(0,0,0,.4);width:min(540px,92vw)}
+#modal-customize-captcha .close{position:absolute;right:10px;top:8px;color:#9aa3b2;text-decoration:none;font-weight:700}
+.row{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.row label{font-size:13px;color:#9aa3b2}
+.row input{padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#0b1020;color:#e8ecf4}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{appearance:none;border:0;border-radius:12px;padding:12px 14px;font-weight:800;cursor:pointer}
+.primary{background:linear-gradient(90deg,#34d399,#10b981);color:#062d24}
+.ghost{background:#0b1020;color:#9aa3b2;border:1px solid rgba(255,255,255,.12)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+</style>
 
+<div id="modal-customize-captcha">
+<div class="box">
+<a class="close" href="#">✕</a>
+<h3>Customize – Voice Verify</h3>
+
+<div class="row">
+<label>Recipient Name</label>
+<input id="name-cap" placeholder="e.g. Yael" />
+</div>
+<div class="row">
+<label>Real Gift URL (with https://)</label>
+<input id="gift-cap" placeholder="https://example.com/real-gift" />
+</div>
+<div class="row">
+<label>Shareable Link (auto)</label>
+<input id="out-cap" readonly />
+</div>
+
+<div class="actions">
+<button id="gen-cap" class="btn primary" disabled>Generate Link & Continue to PayPal</button>
+<a class="btn ghost" href="#modal-captcha-preview">Preview</a>
+</div>
+</div>
+</div>
+
+<script>
+(function(){
+if(!window.APP) return;
+
+const FEATURE_SLUG = "captcha"; // ← למתיחות אחרות: captcha / infinite / narcissist-q / selfie-verify
+
+const $=s=>document.querySelector(s);
+const name=$('#name-cap'), gift=$('#gift-cap'), out=$('#out-cap'), gen=$('#gen-cap');
+
+function isUrl(u){ try{ const x=new URL(u); return /^https?:$/.test(x.protocol); }catch(e){ return false; } }
+
+// לינק אמיתי (ללקוח) – בלי preview
+function buildShareUrl(){
+const n=(name.value||"").trim(), g=(gift.value||"").trim();
+if(n.length<2 || !isUrl(g)) return "";
+const u=new URL(window.APP.RUNTIME_BASE);
+u.searchParams.set('f', FEATURE_SLUG);
+u.searchParams.set('name', n);
+u.searchParams.set('giftUrl', g);
+return u.toString();
+}
+
+// לינק לפריביו (מודאל) – עם preview=1
+function buildPreviewUrl(){
+const s = buildShareUrl(); if(!s) return "";
+const u=new URL(s); u.searchParams.set('preview','1'); return u.toString();
+}
+
+function update(){
+const shareUrl = buildShareUrl();
+const previewUrl= buildPreviewUrl();
+out.value = shareUrl;
+gen.disabled= !shareUrl;
+
+// לעדכן את הפריביו של המתיחה הזו בלבד
+if(previewUrl && typeof window.setPreview_captcha==='function'){
+window.setPreview_captcha(previewUrl);
+}
+
+try{
+localStorage.setItem('share_url', shareUrl);
+localStorage.setItem('name', (name.value||"").trim());
+localStorage.setItem('gift', (gift.value||"").trim());
+}catch(e){}
+}
+
+function paypalLink(){
+const amt = (window.APP.PAYPAL?.PRICES?.[FEATURE_SLUG]) || "1.00";
+const base = "https://www.paypal.com/cgi-bin/webscr";
+const q = new URLSearchParams({
+cmd: "_xclick",
+business: window.APP.PAYPAL.BUSINESS,
+item_name: "Kefpo: " + FEATURE_SLUG,
+amount: amt,
+currency_code: window.APP.PAYPAL.CURRENCY || "USD",
+no_shipping: "1",
+return: window.APP.MAIN_BASE + "/#link-ready"
+});
+return `${base}?${q.toString()}`;
+}
+
+name.addEventListener('input', update);
+gift.addEventListener('input', update);
+
+gen.addEventListener('click', ()=>{
+const shareUrl = out.value;
+if(!shareUrl) return;
+try{
+localStorage.setItem('share_url', shareUrl);
+localStorage.setItem('name', (name.value||"").trim());
+localStorage.setItem('gift', (gift.value||"").trim());
+}catch(e){}
+window.location.href = paypalLink();
+});
+
+// הידרציה אם חזרנו
+try{
+const n=localStorage.getItem('name'); if(n) name.value=n;
+const g=localStorage.getItem('gift'); if(g) gift.value=g;
+update();
+}catch(e){}
+})();
+</script>
